@@ -104,12 +104,14 @@ async def create_workout(
 
 
 async def get_workouts_paginated(
+        skip: int = Query(0, ge=0, description="Number of records to skip"),
+        limit: int = Query(10, ge=1, le=1000, description="Maximum records to return"),
         search: Optional[str] = Query(None, description="Search term for title or description"),
         category: Optional[str] = Query(None, description="Filter by workout category"),
         difficulty_level: Optional[str] = Query(None, description="Filter by difficulty level"),
         db: Session = Depends(get_db),
         current_admin: Admin = Depends(get_current_admin)
-) -> List[WorkoutResponse]:
+) -> dict:
 
     # Build query
     query = db.query(Workout)
@@ -129,8 +131,11 @@ async def get_workouts_paginated(
     if difficulty_level:
         query = query.filter(Workout.activity_level == difficulty_level)
 
-    # Get all results (no pagination)
-    workouts = query.all()
+    # Get total count for pagination metadata
+    total_count = query.count()
+
+    # Apply pagination
+    workouts = query.offset(skip).limit(limit).all()
 
     # Convert workouts to response format
     workout_responses = []
@@ -149,7 +154,23 @@ async def get_workouts_paginated(
         )
         workout_responses.append(workout_response)
 
-    return workout_responses
+    # Calculate pagination metadata
+    total_pages = ceil(total_count / limit)
+    current_page = skip // limit + 1
+
+    return {
+        "workouts": workout_responses,
+        "pagination": {
+            "current_page": current_page,
+            "page_size": limit,
+            "total_items": total_count,
+            "total_pages": total_pages,
+            "has_next": current_page < total_pages,
+            "has_prev": current_page > 1,
+            "next_skip": skip + limit if current_page < total_pages else None,
+            "prev_skip": skip - limit if current_page > 1 else None
+        }
+    }
 
 
 async def get_workout_by_id(

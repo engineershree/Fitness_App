@@ -8,7 +8,7 @@ from .auth import (
 from .auth_tokens import refresh_token, logout, logout_all
 
 from .activities import (store_daily_activity, get_weekly_analytics,
-                         get_user_daily_activities, get_user_monthly_activities)
+                         get_user_daily_activities, get_user_monthly_activities,get_user_yearly_activities)
 from .meals import get_meals_by_user_bmi, create_bmi_classification, create_meal
 from .workouts import create_workout, get_workouts_for_user
 
@@ -38,7 +38,7 @@ router.post("/activity/daily")(store_daily_activity)  # New fitness endpoint wit
 router.get("/activity/weekly")(get_weekly_analytics)  # get the user data monthly record week wise
 router.get("/activity/daily")(get_user_daily_activities)  # get user data of all month daywise
 router.get("/activity/monthly")(get_user_monthly_activities)  # New monthly activities endpoint  and get the user data monthly
-# router.get("/activity/yearly/{user_id}")(get_user_yearly_activities)  # New yearly activities endpoint
+router.get("/activity/yearly")(get_user_yearly_activities)  # New yearly activities endpoint
 
 # Meal endpoints
 router.get("/meals")(get_meals_by_user_bmi)

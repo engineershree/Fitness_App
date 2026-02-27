@@ -7,10 +7,12 @@ from dotenv import load_dotenv
 import bcrypt
 from jose import jwt, JWTError
 import hashlib
+import random
 
 from app.models.admin import Admin, AdminRefreshToken
 from app.core.database import get_db
-from .schemas import AdminRegister, AdminLogin, AdminResponse, TokenResponse
+from .schemas import AdminRegister, AdminLogin, AdminResponse, TokenResponse, AdminForgotPasswordEmailSchema, AdminForgotPasswordVerifySchema, AdminForgotPasswordResetSchema
+from app.utils.emailjs_utils import send_otp_email
 
 # Load environment variables
 load_dotenv()
@@ -266,3 +268,111 @@ async def login_admin(
         token_type="bearer",
         expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60  # Convert to seconds
     )
+
+
+# ADMIN FORGOT PASSWORD - SEND OTP
+async def admin_forgot_password_send_otp(
+        admin_data: AdminForgotPasswordEmailSchema,
+        db: Session = Depends(get_db)
+):
+    """
+    Send OTP to admin email for password reset.
+    """
+    admin = db.query(Admin).filter(Admin.email == admin_data.email).first()
+
+    if not admin:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Email not found. Please check your email."
+        )
+
+    # Generate new OTP for password reset
+    new_otp = str(random.randint(100000, 999999))
+
+    # Update admin record with new OTP and fresh timestamp
+    admin.otp = new_otp
+    admin.otp_created_at = datetime.utcnow()  # Reset expiration timer for password reset
+    db.commit()
+
+    print(f"Admin Forgot Password OTP for {admin.email}: {new_otp}")
+
+    # Define admin-specific message
+    admin_message = """A password reset request has been initiated for your Fitness App Admin Panel account.
+
+To continue with resetting your administrator password, please use the One-Time Password (OTP) provided below.
+
+If you did not make this request, we recommend reviewing your account security immediately."""
+
+    # Send new OTP via email using existing EmailJS function with role-specific message
+    try:
+        send_otp_email(admin.email, new_otp, admin_message)
+    except Exception as e:
+        print(f"Email sending failed: {e}")
+
+    return {"message": "Password reset OTP sent to your email"}
+
+
+# ADMIN FORGOT PASSWORD - VERIFY OTP
+async def admin_forgot_password_verify_otp(
+        admin_data: AdminForgotPasswordVerifySchema,
+        db: Session = Depends(get_db)
+):
+    """
+    Verify OTP for admin password reset.
+    """
+    admin = db.query(Admin).filter(Admin.email == admin_data.email).first()
+
+    if not admin or admin.otp != admin_data.otp:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid OTP"
+        )
+
+    # Check OTP expiration (300 seconds validity - 5 minutes)
+    if admin.otp_created_at:
+        time_elapsed = datetime.utcnow() - admin.otp_created_at
+        if time_elapsed.total_seconds() > 300:  # OTP expires after 300 seconds
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="OTP expired. Please request a new OTP."
+            )
+
+    # OTP is valid - allow password reset
+    return {"message": "OTP verified successfully. You can now reset your password."}
+
+
+# ADMIN FORGOT PASSWORD - RESET PASSWORD
+async def admin_forgot_password_reset(
+        admin_data: AdminForgotPasswordResetSchema,
+        db: Session = Depends(get_db)
+):
+    """
+    Reset admin password using OTP verification.
+    """
+    admin = db.query(Admin).filter(Admin.email == admin_data.email).first()
+
+    if not admin or admin.otp != admin_data.otp:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid OTP"
+        )
+
+    # Re-check OTP expiration (300 seconds validity) for security
+    if admin.otp_created_at:
+        time_elapsed = datetime.utcnow() - admin.otp_created_at
+        if time_elapsed.total_seconds() > 300:  # OTP expires after 300 seconds
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="OTP expired. Please request a new OTP."
+            )
+
+    # Update password
+    admin.password_hash = get_password_hash(admin_data.new_password)
+
+    # Clear OTP and timestamp after successful password reset
+    admin.otp = None
+    admin.otp_created_at = None
+
+    db.commit()
+
+    return {"message": "Password reset successfully. You can now login with your new password."}

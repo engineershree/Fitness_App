@@ -11,7 +11,7 @@ TEMPLATE_ID = os.getenv("EMAILJS_TEMPLATE_ID")
 PUBLIC_KEY = os.getenv("EMAILJS_PUBLIC_KEY")
 
 
-def send_otp_email(to_email: str, otp: str):
+def send_otp_email(to_email: str, otp: str, msg: str = None):
 
     if not all([SERVICE_ID, TEMPLATE_ID, PUBLIC_KEY]):
         print("Warning: EmailJS credentials not configured. OTP not sent.")
@@ -19,15 +19,23 @@ def send_otp_email(to_email: str, otp: str):
 
     # EmailJS API requires exact parameter names in template_params
     # These must match your EmailJS template variables exactly
+    template_params = {
+        "email": to_email,  # Must match EmailJS template variable name
+        "otp": otp,  # Must match EmailJS template variable name
+    }
+    
+    # Add msg parameter if provided
+    if msg:
+        template_params["msg"] = msg
+    else:
+        # Fallback message for backward compatibility
+        template_params["msg"] = f"Your verification code is: {otp}"
+
     payload = {
         "service_id": SERVICE_ID,
         "template_id": TEMPLATE_ID,
         "user_id": PUBLIC_KEY,
-        "template_params": {
-            "email": to_email,  # Must match EmailJS template variable name
-            "otp": otp,  # Must match EmailJS template variable name
-            "message": f"Your verification code is: {otp}"  # Optional fallback
-        }
+        "template_params": template_params
     }
 
     try:

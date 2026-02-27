@@ -56,12 +56,14 @@ async def register_user(user: UserRegisterSchema,
 
 
 async def get_users_paginated(
+        skip: int = Query(0, ge=0, description="Number of records to skip"),
+        limit: int = Query(10, ge=1, le=1000, description="Maximum records to return"),
         search: Optional[str] = Query(None, description="Search term for email or name"),
         is_verified: Optional[bool] = Query(None, description="Filter by verification status"),
         is_blocked: Optional[bool] = Query(None, description="Filter by blocked status"),
         db: Session = Depends(get_db),
         current_admin: Admin = Depends(get_current_admin)
-) -> List[UserResponse]:
+) -> dict:
 
     # Build query
     query = db.query(User)
@@ -81,8 +83,11 @@ async def get_users_paginated(
     if is_blocked is not None:
         pass
 
-    # Get all results (no pagination)
-    users = query.all()
+    # Get total count for pagination metadata
+    total_count = query.count()
+
+    # Apply pagination
+    users = query.offset(skip).limit(limit).all()
 
     # Convert users to response format
     user_responses = []
@@ -104,7 +109,23 @@ async def get_users_paginated(
         )
         user_responses.append(user_response)
 
-    return user_responses
+    # Calculate pagination metadata
+    total_pages = ceil(total_count / limit)
+    current_page = skip // limit + 1
+
+    return {
+        "users": user_responses,
+        "pagination": {
+            "current_page": current_page,
+            "page_size": limit,
+            "total_items": total_count,
+            "total_pages": total_pages,
+            "has_next": current_page < total_pages,
+            "has_prev": current_page > 1,
+            "next_skip": skip + limit if current_page < total_pages else None,
+            "prev_skip": skip - limit if current_page > 1 else None
+        }
+    }
 
 
 async def get_user_by_id(

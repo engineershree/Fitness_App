@@ -42,13 +42,15 @@ async def create_meal(
 
 
 async def get_meals_paginated(
+        skip: int = Query(0, ge=0, description="Number of records to skip"),
+        limit: int = Query(10, ge=1, le=1000, description="Maximum records to return"),
         search: Optional[str] = Query(None, description="Search term for food item"),
         meal_type: Optional[str] = Query(None, description="Filter by meal type"),
         min_calories: Optional[int] = Query(None, description="Filter by minimum calories"),
         max_calories: Optional[int] = Query(None, description="Filter by maximum calories"),
         db: Session = Depends(get_db),
         current_admin: Admin = Depends(get_current_admin)
-) -> List[MealResponse]:
+) -> dict:
 
     # Build query
     query = db.query(Meal)
@@ -66,8 +68,11 @@ async def get_meals_paginated(
     if max_calories is not None:
         query = query.filter(Meal.calories <= max_calories)
 
-    # Get all results (no pagination)
-    meals = query.all()
+    # Get total count for pagination metadata
+    total_count = query.count()
+
+    # Apply pagination
+    meals = query.offset(skip).limit(limit).all()
 
     # Convert meals to response format
     meal_responses = []
@@ -81,7 +86,23 @@ async def get_meals_paginated(
         )
         meal_responses.append(meal_response)
 
-    return meal_responses
+    # Calculate pagination metadata
+    total_pages = ceil(total_count / limit)
+    current_page = skip // limit + 1
+
+    return {
+        "meals": meal_responses,
+        "pagination": {
+            "current_page": current_page,
+            "page_size": limit,
+            "total_items": total_count,
+            "total_pages": total_pages,
+            "has_next": current_page < total_pages,
+            "has_prev": current_page > 1,
+            "next_skip": skip + limit if current_page < total_pages else None,
+            "prev_skip": skip - limit if current_page > 1 else None
+        }
+    }
 
 
 async def get_meal_by_id(

@@ -434,3 +434,19 @@ class FitnessActivityService:
         
         distinct_months = result.scalar()
         return distinct_months  # Returns 0, 1, 2, or 3
+
+
+    def get_user_yearly_activities(self, user_id: int) -> list:
+        """
+        Get all yearly activity records for a user
+        Returns list of yearly activity records
+        """
+        result = self.db.execute(text("""
+            SELECT id, year, total_steps, total_distance_km, 
+                   total_calories, total_active_minutes, created_at
+            FROM user_yearly_activity 
+            WHERE user_id = :user_id
+            ORDER BY year DESC
+        """), {"user_id": user_id})
+        
+        return result.fetchall()

@@ -13,7 +13,8 @@ from app.models.user import  User
 from app.models.activity import DailyActivity
 from app.schemas.activity import (
     DailyActivityRequest, DailyActivityResponse, WeeklyAnalyticsResponse,
-    WeeklyActivityData, MonthlySummaryResponse, UserDailyActivityResponse, MonthlyActivityResponse
+    WeeklyActivityData, MonthlySummaryResponse, UserDailyActivityResponse, MonthlyActivityResponse,
+    YearlyActivityResponse
 )
 
 
@@ -294,7 +295,7 @@ def get_weekly_analytics(
         weeks=weekly_data
     )
 
- # New monthly activities endpoint
+ # Get user monthly activities data
 def get_user_monthly_activities(
         current_user_id: int = Depends(get_current_user_id),
         db: Session = Depends(get_db)
@@ -326,6 +327,47 @@ def get_user_monthly_activities(
             ))
 
         return monthly_activities
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+#Get user yearly activity data
+def get_user_yearly_activities(
+        current_user: User = Depends(get_current_user_id),
+        db: Session = Depends(get_db)
+):
+    # Use authenticated user
+    user_id = current_user
+
+    # Initialize fitness service
+    fitness_service = FitnessActivityService(db)
+
+    try:
+        # Get yearly activities for the user
+        yearly_records = fitness_service.get_user_yearly_activities(user_id)
+
+        if not yearly_records:
+            return []
+
+        # Format response
+        yearly_activities = []
+        for record in yearly_records:
+            yearly_activities.append(YearlyActivityResponse(
+                id=record[0],
+                user_id=user_id,
+                year=record[1],
+                total_steps=record[2],
+                total_distance_km=record[3],
+                total_calories=record[4],
+                total_active_minutes=record[5],
+                created_at=record[6].isoformat() if record[6] else ""
+            ))
+
+        return yearly_activities
 
     except Exception as e:
         db.rollback()

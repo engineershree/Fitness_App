@@ -16,6 +16,8 @@ class Admin(Base):
     password_hash = Column(String, nullable=False)  # Hashed password using bcrypt
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    otp = Column(String, nullable=True)
+    otp_created_at = Column(DateTime, nullable=True)  # Track OTP creation time for expiration
 
     def __repr__(self):
         return f"<Admin(id={self.id}, email={self.email}, is_active={self.is_active})>"

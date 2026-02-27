@@ -22,6 +22,19 @@ class AdminRegister(AdminBase):
 class AdminLogin(AdminBase):
     password: str
 
+# Admin Forgot Password Schemas
+class AdminForgotPasswordEmailSchema(BaseModel):
+    email: EmailStr
+
+class AdminForgotPasswordVerifySchema(BaseModel):
+    email: EmailStr
+    otp: str
+
+class AdminForgotPasswordResetSchema(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
+
 class AdminResponse(AdminBase):
     id: int
     is_active: bool
@@ -136,6 +149,12 @@ class BMIClassificationResponse(BMIClassificationBase):
 
     class Config:
         from_attributes = True
+
+
+class BMIClassificationUpdate(BaseModel):
+    category_name: Optional[str] = None
+    min_bmi: Optional[float] = None
+    max_bmi: Optional[float] = None
 
 
 # Meal Schemas

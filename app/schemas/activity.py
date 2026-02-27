@@ -76,3 +76,15 @@ class MonthlyActivityResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class YearlyActivityResponse(BaseModel):
+    """Response schema for yearly activity"""
+    id: int
+    user_id: int
+    year: int
+    total_steps: int
+    total_distance_km: float
+    total_calories: float
+    total_active_minutes: float
+    created_at: str

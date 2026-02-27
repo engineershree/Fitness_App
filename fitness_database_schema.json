@@ -1,0 +1,761 @@
+{
+  "database": "fitness_app",
+  "generated_on": "2026-02-23T15:56:20.669999",
+  "tables": {
+    "admin_refresh_tokens": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "nextval('admin_refresh_tokens_id_seq'::regclass)"
+        },
+        {
+          "name": "admin_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "token_hash",
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "jti",
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMP",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "is_revoked",
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "false"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "last_used_at",
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "admin_id"
+          ],
+          "referenced_table": "admins",
+          "referenced_columns": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "admin_refresh_tokens_jti_key",
+          "columns": [
+            "jti"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    "admins": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "nextval('admins_id_seq'::regclass)"
+        },
+        {
+          "name": "username",
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "password_hash",
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "is_active",
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        {
+          "name": "admins_email_key",
+          "columns": [
+            "email"
+          ],
+          "unique": true
+        },
+        {
+          "name": "admins_username_key",
+          "columns": [
+            "username"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    "bmi_classification": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "nextval('bmi_classification_id_seq'::regclass)"
+        },
+        {
+          "name": "category_name",
+          "type": "VARCHAR",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "min_bmi",
+          "type": "DOUBLE PRECISION",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "max_bmi",
+          "type": "DOUBLE PRECISION",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [],
+      "indexes": []
+    },
+    "daily_activities": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "nextval('daily_activities_id_seq'::regclass)"
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "date",
+          "type": "DATE",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "steps",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "distance_km",
+          "type": "DOUBLE PRECISION",
+          "nullable": true,
+          "default": "0.0"
+        },
+        {
+          "name": "calories",
+          "type": "DOUBLE PRECISION",
+          "nullable": true,
+          "default": "0.0"
+        },
+        {
+          "name": "active_minutes",
+          "type": "DOUBLE PRECISION",
+          "nullable": true,
+          "default": "0.0"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "user_id"
+          ],
+          "referenced_table": "users",
+          "referenced_columns": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "unique_user_date",
+          "columns": [
+            "user_id",
+            "date"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    "meals": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "nextval('meals_id_seq'::regclass)"
+        },
+        {
+          "name": "bmi_category_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "meal_type",
+          "type": "VARCHAR",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "food_item",
+          "type": "VARCHAR",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "calories",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "bmi_category_id"
+          ],
+          "referenced_table": "bmi_classification",
+          "referenced_columns": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": []
+    },
+    "refresh_tokens": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "nextval('refresh_tokens_id_seq'::regclass)"
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "token_hash",
+          "type": "VARCHAR",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMP",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "last_used_at",
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "is_revoked",
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "jti",
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null
+        }
+      ],
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "user_id"
+          ],
+          "referenced_table": "users",
+          "referenced_columns": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_refresh_tokens_jti",
+          "columns": [
+            "jti"
+          ],
+          "unique": false
+        },
+        {
+          "name": "ix_refresh_tokens_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "ix_refresh_tokens_user_id",
+          "columns": [
+            "user_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "refresh_tokens_jti_key",
+          "columns": [
+            "jti"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    "user_monthly_activity": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "nextval('user_monthly_activity_id_seq'::regclass)"
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "year",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "month",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "total_steps",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "total_distance_km",
+          "type": "DOUBLE PRECISION",
+          "nullable": true,
+          "default": "0.0"
+        },
+        {
+          "name": "total_calories",
+          "type": "DOUBLE PRECISION",
+          "nullable": true,
+          "default": "0.0"
+        },
+        {
+          "name": "total_active_minutes",
+          "type": "DOUBLE PRECISION",
+          "nullable": true,
+          "default": "0.0"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "user_id"
+          ],
+          "referenced_table": "users",
+          "referenced_columns": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "unique_user_year_month",
+          "columns": [
+            "user_id",
+            "year",
+            "month"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    "user_yearly_activity": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "nextval('user_yearly_activity_id_seq'::regclass)"
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "year",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "total_steps",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "total_distance_km",
+          "type": "DOUBLE PRECISION",
+          "nullable": true,
+          "default": "0.0"
+        },
+        {
+          "name": "total_calories",
+          "type": "DOUBLE PRECISION",
+          "nullable": true,
+          "default": "0.0"
+        },
+        {
+          "name": "total_active_minutes",
+          "type": "DOUBLE PRECISION",
+          "nullable": true,
+          "default": "0.0"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "user_id"
+          ],
+          "referenced_table": "users",
+          "referenced_columns": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "unique_user_year",
+          "columns": [
+            "user_id",
+            "year"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    "users": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "nextval('users_id_seq'::regclass)"
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "password",
+          "type": "VARCHAR",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "otp",
+          "type": "VARCHAR",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "otp_created_at",
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "is_verified",
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "username",
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "gender",
+          "type": "VARCHAR(20)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "age",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "weight",
+          "type": "DOUBLE PRECISION",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "height",
+          "type": "DOUBLE PRECISION",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "bmi",
+          "type": "DOUBLE PRECISION",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "weight_goal",
+          "type": "DOUBLE PRECISION",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "activity_level",
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "profile_image",
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        {
+          "name": "ix_users_email",
+          "columns": [
+            "email"
+          ],
+          "unique": true
+        },
+        {
+          "name": "ix_users_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    "workouts": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "nextval('workouts_id_seq'::regclass)"
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "workout_image_url",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "workout_video_url",
+          "type": "TEXT",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "duration",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "calorie_burn",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "activity_level",
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "workout_category",
+          "type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_keys": [
+        "id"
+      ],
+      "foreign_keys": [],
+      "indexes": []
+    }
+  }
+}

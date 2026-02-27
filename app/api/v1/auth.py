@@ -43,10 +43,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         return plain_password == hashed_password
 
 
-
-def register(user: RegisterSchema,
-            db: Session = Depends(get_db)
-            ):
+# REGISTER
+def register(user: RegisterSchema, db: Session = Depends(get_db)):
 
     if db.query(User).filter(User.email == user.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -60,7 +58,38 @@ def register(user: RegisterSchema,
     db.add(new_user)
     db.commit()
 
-    return {"message": "Registration successful"}
+    # Generate JWT tokens for immediate login
+    access_token = create_access_token(new_user.id)
+    refresh_token, refresh_token_hash = create_refresh_token(new_user.id)
+    
+    # Extract JTI from the refresh token
+    from app.core.jwt_utils import decode_refresh_token
+    payload = decode_refresh_token(refresh_token)
+    jti = payload.get("jti")
+    
+    # Store hashed refresh token in database with JTI
+    db_refresh_token = RefreshToken(
+        user_id=new_user.id,
+        token_hash=refresh_token_hash,
+        jti=jti,  # Store JWT ID for tracking
+        expires_at=datetime.utcnow() + timedelta(days=7),
+        last_used_at=datetime.utcnow()
+    )
+    db.add(db_refresh_token)
+    db.commit()
+
+    return {
+        "message": "Registration successful",
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "user": {
+            "user_id": new_user.id,
+            "username": new_user.username,
+            "email": new_user.email,
+        }
+    }
+
 
 # FORGOT PASSWORD - SEND OTP
 def forgot_password_send_otp(user: ForgotPasswordEmailSchema, db: Session = Depends(get_db)):
@@ -80,9 +109,16 @@ def forgot_password_send_otp(user: ForgotPasswordEmailSchema, db: Session = Depe
 
     print(f"Forgot Password OTP for {user.email}: {new_otp}")
  
-    # Send new OTP via email using existing EmailJS function
+    # Define user-specific message
+    user_message = """We received a request to reset the password for your Fitness App account.
+
+To proceed with resetting your password, please use the One-Time Password (OTP) provided below.
+
+For security reasons, this OTP is valid for 5 minutes only."""
+
+    # Send new OTP via email using existing EmailJS function with role-specific message
     try:
-        send_otp_email(user.email, new_otp)
+        send_otp_email(user.email, new_otp, user_message)
     except Exception as e:
         print(f"Email sending failed: {e}")
 
