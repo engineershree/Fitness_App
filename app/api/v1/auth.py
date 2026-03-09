@@ -43,6 +43,41 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         return plain_password == hashed_password
 
 
+# RESEND OTP
+def resend_otp(data: ResendOTPSchema, db: Session = Depends(get_db)):
+
+    user = db.query(User).filter(User.email == data.email).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Email not found. Please register first.")
+
+    # Generate new OTP
+    new_otp = str(random.randint(100000, 999999))
+
+    # Update existing user record with new OTP and fresh timestamp
+    user.otp = new_otp
+    user.otp_created_at = datetime.utcnow()  # Reset expiration timer
+    db.commit()
+
+    print(f"Resend OTP for {data.email}: {new_otp}")
+
+    # Define user-specific resend OTP message
+    user_message = """We received a request to resend the OTP verification code for your Fitness App account.
+
+    To complete your verification of your email address, please use the One-Time Password (OTP) provided below.
+
+    For security reasons, this OTP is valid for 5 minutes only."""
+
+    # Send new OTP via email using existing EmailJS function with role-specific message
+    try:
+        send_otp_email(data.email, new_otp, user_message)
+    except Exception as e:
+        print(f"Email sending failed: {e}")
+        # Don't fail the operation if email fails, user can still verify with printed OTP
+
+    return {"message": "New OTP sent to your email"}
+
+
 # REGISTER
 def register(user: RegisterSchema, db: Session = Depends(get_db)):
 

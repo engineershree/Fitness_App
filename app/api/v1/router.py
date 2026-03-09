@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from .auth import (
     register, login,
-    forgot_password_send_otp, forgot_password_verify_otp, forgot_password_reset_password,
+    forgot_password_send_otp, resend_otp, forgot_password_verify_otp, forgot_password_reset_password,
     update_profile, get_profile,upload_profile_image, get_user_profile)
 
 from .auth_tokens import refresh_token, logout, logout_all
@@ -18,6 +18,7 @@ router = APIRouter()
 #Auth endpoints
 router.post("/register")(register),
 router.post("/forgot-password/send-otp")(forgot_password_send_otp),
+router.post("/resend-otp")(resend_otp)
 router.post("/forgot-password/verify-otp")(forgot_password_verify_otp),
 router.post("/forgot-password/reset-password")(forgot_password_reset_password),
 router.post("/login")(login),
