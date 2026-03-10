@@ -3,12 +3,17 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Dict
 from datetime import datetime, timedelta
+import logging
 
 from app.core.database import get_db
 from app.core.jwt_utils import create_access_token, create_refresh_token, decode_refresh_token, verify_refresh_token
 from app.core.auth_dependencies import get_current_user
 from app.models.user import User
 from app.models.refresh_token import RefreshToken
+
+# Configure logging for logout debugging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class RefreshTokenRequest(BaseModel):
@@ -95,39 +100,113 @@ def logout(
     request: RefreshTokenRequest,
     db: Session = Depends(get_db)
 ) -> Dict:
+    logger.info("=== LOGOUT REQUEST STARTED ===")
+    logger.debug(f"Request received: {type(request)}")
+    
     try:
+        # Log incoming request details
+        logger.debug("Logging request details...")
+        if hasattr(request, 'refresh_token'):
+            token_length = len(request.refresh_token) if request.refresh_token else 0
+            logger.debug(f"Refresh token present: {bool(request.refresh_token)}")
+            logger.debug(f"Refresh token length: {token_length}")
+            logger.debug(f"Refresh token preview: {request.refresh_token[:20]}..." if request.refresh_token and token_length > 20 else "N/A")
+        else:
+            logger.error("Request object missing refresh_token attribute!")
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Invalid request format: missing refresh_token"
+            )
+        
+        # Validate refresh token format
+        if not request.refresh_token:
+            logger.error("Empty refresh token received")
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Refresh token cannot be empty"
+            )
+        
+        logger.debug("Attempting to decode refresh token...")
         # Decode and validate the refresh token
         payload = decode_refresh_token(request.refresh_token)
-        user_id = int(payload.get("sub"))
+        logger.debug(f"Token decoded successfully. Payload: {payload}")
         
+        user_id = payload.get("sub")
+        logger.debug(f"Extracted user_id: {user_id}")
+        
+        if not user_id:
+            logger.error("No user_id found in token payload")
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Invalid token format: missing user_id"
+            )
+        
+        try:
+            user_id = int(user_id)
+            logger.debug(f"Converted user_id to int: {user_id}")
+        except (ValueError, TypeError):
+            logger.error(f"Invalid user_id format: {user_id}")
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Invalid user_id format in token"
+            )
+        
+        logger.debug("Querying database for refresh tokens...")
         # Find and revoke the specific refresh token
         db_tokens = db.query(RefreshToken).filter(
             RefreshToken.user_id == user_id,
             RefreshToken.is_revoked == False
         ).all()
         
+        logger.debug(f"Found {len(db_tokens)} active refresh tokens for user {user_id}")
+        
         revoked_count = 0
-        for db_token in db_tokens:
-            if verify_refresh_token(request.refresh_token, db_token.token_hash):
-                db_token.revoke()
-                revoked_count += 1
-                break
+        for i, db_token in enumerate(db_tokens):
+            logger.debug(f"Checking token {i+1}/{len(db_tokens)} - Token ID: {db_token.id}")
+            logger.debug(f"Token expires_at: {db_token.expires_at}")
+            logger.debug(f"Token is_revoked: {db_token.is_revoked}")
+            
+            try:
+                is_valid = verify_refresh_token(request.refresh_token, db_token.token_hash)
+                logger.debug(f"Token {i+1} verification result: {is_valid}")
+                
+                if is_valid:
+                    logger.debug(f"Revoking token {i+1}...")
+                    db_token.revoke()
+                    revoked_count += 1
+                    logger.info(f"Successfully revoked token {i+1} for user {user_id}")
+                    break
+            except Exception as e:
+                logger.error(f"Error verifying token {i+1}: {str(e)}")
+                continue
+        
+        logger.debug(f"Total tokens revoked: {revoked_count}")
         
         if revoked_count == 0:
+            logger.warning(f"No valid tokens found to revoke for user {user_id}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid refresh token"
             )
         
+        logger.debug("Committing database changes...")
         db.commit()
+        logger.info(f"Logout successful for user {user_id}")
+        logger.info("=== LOGOUT REQUEST COMPLETED SUCCESSFULLY ===")
+        
         return {"message": "Logout successful"}
         
-    except HTTPException:
+    except HTTPException as http_ex:
+        logger.error(f"HTTP Exception in logout: {http_ex.status_code} - {http_ex.detail}")
+        logger.info("=== LOGOUT REQUEST FAILED WITH HTTP EXCEPTION ===")
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(f"Unexpected error in logout: {type(e).__name__}: {str(e)}")
+        logger.error(f"Exception details: {repr(e)}")
+        logger.info("=== LOGOUT REQUEST FAILED WITH UNEXPECTED ERROR ===")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token"
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Logout processing error: {type(e).__name__}"
         )
 
 
