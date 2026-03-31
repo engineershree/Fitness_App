@@ -1,6 +1,7 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 from typing import Optional, List, Generic, TypeVar
 from datetime import datetime
+import json
 
 # Generic Type for Paginated Response
 T = TypeVar('T')
@@ -20,6 +21,7 @@ class AdminRegister(AdminBase):
     password: str
 
 class AdminLogin(AdminBase):
+    email:EmailStr
     password: str
 
 # Admin Forgot Password Schemas
@@ -33,6 +35,11 @@ class AdminForgotPasswordVerifySchema(BaseModel):
 class AdminForgotPasswordResetSchema(BaseModel):
     email: EmailStr
     otp: str
+    new_password: str
+
+# Admin Change Password Schema
+class AdminChangePasswordSchema(BaseModel):
+    old_password: str
     new_password: str
 
 class AdminResponse(AdminBase):
@@ -86,6 +93,7 @@ class UserBase(BaseModel):
 
 class UserResponse(UserBase):
     id: int
+    username: str
     is_verified: bool
     created_at: datetime
     is_blocked: Optional[bool] = False
@@ -198,3 +206,66 @@ class ErrorResponse(BaseModel):
 class SuccessResponse(BaseModel):
     message: str
     data: Optional[dict] = None
+
+
+#Subscription Plan Schemas
+class PlanBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    price: float
+    duration_days: int  # Changed from duration_months
+    features: Optional[List[str]] = None  # Changed from str to List[str]
+    is_active: bool = True
+
+class PlanCreate(PlanBase):
+    pass
+
+class PlanUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[float] = None
+    duration_days: Optional[int] = None  # Changed from duration_months
+    features: Optional[List[str]] = None  # Changed from str to List[str]
+    is_active: Optional[bool] = None
+
+class Plan(PlanBase):
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    
+    @field_validator('features', mode='before')
+    @classmethod
+    def parse_features(cls, v):
+        """Parse features from database JSON string to list"""
+        if v is None:
+            return None
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+                elif isinstance(parsed, dict):
+                    # Convert dict values to list of strings
+                    return [f"{k}:{v}" for k, v_item in parsed.items()]
+                return [str(parsed)]
+            except (json.JSONDecodeError, TypeError):
+                return [str(v)]
+        return [str(v)]
+
+#Dashboard Schemas
+class OverviewResponse(BaseModel):
+    total_users: int
+    total_workouts: int
+    total_meals: int
+    active_subscriptions: int
+
+class UserResponsedash(BaseModel):
+    id: int
+    username: str
+    email: str
+    activity_level: Optional[str] = None
+    gender: Optional[str] = None

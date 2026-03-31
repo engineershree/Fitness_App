@@ -199,13 +199,19 @@ def forgot_password_reset_password(data: ForgotPasswordResetSchema, db: Session 
 
     user.password = hash_password(data.new_password)
 
+    # Revoke all existing refresh tokens for this user (logout from all devices)
+    db.query(RefreshToken).filter(
+        RefreshToken.user_id == user.id,
+        RefreshToken.is_revoked == False
+    ).update({"is_revoked": True})
+
     # Clear OTP and timestamp after successful password reset
     user.otp = None
     user.otp_created_at = None
 
     db.commit()
 
-    return {"message": "Password reset successfully. You can now login with your new password."}
+    return {"message": "Password reset successfully. All sessions have been logged out. Please login again."}
 
 
 # LOGIN
@@ -323,12 +329,12 @@ async def upload_profile_image(
     old_image_path = user.profile_image
 
     try:
-        # Delete old image first if it exists (to handle different extensions)
+        # Save new profile image FIRST
+        new_image_path = await image_service.save_profile_image(profile_image, current_user_id)
+
+        # Delete old image only AFTER successful upload
         if old_image_path:
             image_service.delete_old_profile_image(old_image_path)
-
-        # Save new profile image
-        new_image_path = await image_service.save_profile_image(profile_image, current_user_id)
 
         # Update user's profile image in database
         user.profile_image = new_image_path
@@ -356,11 +362,15 @@ async def get_user_profile(
 ):
 
 
-    # Return relative profile image path if exists
+    # Return profile image path if exists
     profile_image_path: Optional[str] = None
     if current_user.profile_image:
-        # Convert stored path to public relative path
-        profile_image_path = current_user.profile_image.replace("app/", "/")
+        # Only convert local paths, not Cloudinary URLs
+        if current_user.profile_image.startswith("app/"):
+            profile_image_path = current_user.profile_image.replace("app/", "/", 1)
+        else:
+            # For Cloudinary URLs, return as-is
+            profile_image_path = current_user.profile_image
 
     return {
         "success": True,
