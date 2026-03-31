@@ -4,6 +4,7 @@ from sqlalchemy import func, extract, and_, text
 from datetime import datetime, date
 from typing import List
 import calendar
+import logging
 from app.services.fitness_services import FitnessActivityService
 
 
@@ -16,6 +17,10 @@ from app.schemas.activity import (
     WeeklyActivityData, MonthlySummaryResponse, UserDailyActivityResponse, MonthlyActivityResponse,
     YearlyActivityResponse
 )
+
+# Configure logging for daily activities debugging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 def store_daily_activity(
@@ -197,30 +202,107 @@ def store_daily_activity(
 
 #Get user daily activity
 def get_user_daily_activities(current_user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
-
+    
+    print("=== DAILY ACTIVITIES API START ===")
+    print(f"[DEBUG] User ID: {current_user_id}")
+    logger.info(f"Daily activities request for user: {current_user_id}")
+    
     try:
-        # Get daily activities for the user (LINES 225-243)
-        activities = db.query(DailyActivity).filter(
-            DailyActivity.user_id == current_user_id
-        ).order_by(DailyActivity.date.desc()).all()
+        # Validate user ID
+        if not current_user_id:
+            print("[ERROR] User ID is None!")
+            logger.error("User ID is None!")
+            raise HTTPException(status_code=400, detail="Invalid user ID")
+        
+        try:
+            user_id_int = int(current_user_id)
+        except (ValueError, TypeError) as e:
+            print(f"[ERROR] Invalid user ID format: {current_user_id}")
+            logger.error(f"Invalid user ID format: {current_user_id}")
+            raise HTTPException(status_code=400, detail=f"Invalid user ID format: {current_user_id}")
+        
+        # Check database connection
+        if not db:
+            print("[ERROR] Database session is None!")
+            logger.error("Database session is None!")
+            raise HTTPException(status_code=500, detail="Database connection error")
+        
+        # Verify user exists
+        try:
+            user_check = db.query(User).filter(User.id == user_id_int).first()
+            if not user_check:
+                print(f"[ERROR] User {user_id_int} not found!")
+                logger.error(f"User {user_id_int} not found in database")
+                raise HTTPException(status_code=404, detail=f"User {user_id_int} not found")
+            
+            print(f"[DEBUG] User found: {user_check.email}")
+            logger.info(f"User verified: {user_check.email}")
+            
+        except Exception as e:
+            print(f"[ERROR] Database error during user check: {str(e)}")
+            logger.error(f"Database error during user check: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        
+        # Query daily activities
+        try:
+            activities = db.query(DailyActivity).filter(
+                DailyActivity.user_id == user_id_int
+            ).order_by(DailyActivity.date.desc()).all()
+            
+            print(f"[DEBUG] Found {len(activities)} activities")
+            logger.info(f"Query successful: {len(activities)} activities found")
+            
+        except Exception as e:
+            print(f"[ERROR] Database query failed: {str(e)}")
+            logger.error(f"Database query failed: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Database query error: {str(e)}")
+        
+        # Process activities
+        response_data = []
+        for activity in activities:
+            try:
+                activity_response = UserDailyActivityResponse(
+                    id=activity.id,
+                    user_id=activity.user_id,
+                    date=activity.date,
+                    steps=activity.steps,
+                    distance_km=activity.distance_km,
+                    calories=activity.calories,
+                    active_minutes=activity.active_minutes,
+                    created_at=activity.created_at,
+                    updated_at=activity.updated_at
+                )
+                response_data.append(activity_response)
+            except Exception as e:
+                print(f"[ERROR] Failed to process activity {activity.id}: {str(e)}")
+                logger.error(f"Failed to process activity {activity.id}: {str(e)}")
+                continue
+        
+        print(f"[DEBUG] Processed {len(response_data)} activities successfully")
+        logger.info(f"Returning {len(response_data)} activities")
+        
+        if not response_data:
+            print("[INFO] No activities found - returning empty list")
+            logger.info("No activities found for user")
+        
+        print("=== DAILY ACTIVITIES API SUCCESS ===")
+        return response_data
 
-        return [
-            UserDailyActivityResponse(
-                id=activity.id,
-                user_id=activity.user_id,
-                date=activity.date,
-                steps=activity.steps,
-                distance_km=activity.distance_km,
-                calories=activity.calories,
-                active_minutes=activity.active_minutes,
-                created_at=activity.created_at.isoformat(),
-                updated_at=activity.updated_at.isoformat()
-            )
-            for activity in activities
-        ]
-
+    except HTTPException:
+        print("=== DAILY ACTIVITIES API FAILED (HTTP) ===")
+        raise
     except Exception as e:
-        db.rollback()
+        print(f"[ERROR] Unexpected error: {type(e).__name__}: {str(e)}")
+        logger.error(f"Unexpected error: {type(e).__name__}: {str(e)}")
+        
+        try:
+            if db:
+                db.rollback()
+                print("[DEBUG] Database rollback completed")
+        except Exception as rollback_ex:
+            print(f"[ERROR] Rollback failed: {str(rollback_ex)}")
+        
+        print("=== DAILY ACTIVITIES API FAILED ===")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 #Get user weekly data
