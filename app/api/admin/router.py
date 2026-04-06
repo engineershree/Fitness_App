@@ -31,8 +31,9 @@ from .bmi_classification import (
     create_bmi_classification, get_bmi_classifications_paginated, get_bmi_classification_by_id, 
     update_bmi_classification, delete_bmi_classification
 )
-from.subscription_plans import create_plan, get_plans, get_plan_by_id, update_plan, delete_plan
+from .subscription_plans import create_plan, get_plans, get_plan_by_id, update_plan, delete_plan
 from .users import get_user_subscriptions_paginated, get_user_subscription_by_id, update_user_subscription
+from .activities import get_recent_activities
 
 
 admin_router = APIRouter()
@@ -103,4 +104,7 @@ admin_router.get("/plans", response_model=list[Plan])(get_plans)
 admin_router.get("/plan/{plan_id}", response_model=Plan)(get_plan_by_id)
 admin_router.put("/update-plan/{plan_id}", response_model=Plan)(update_plan)
 admin_router.delete("/delete-plan/{plan_id}")(delete_plan)
+
+# User Activity Logs Routes
+admin_router.get("/recent-activities")(get_recent_activities)
 

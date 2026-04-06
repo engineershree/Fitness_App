@@ -18,6 +18,7 @@ from app.schemas.auth import (
     ProfileSetupSchema)
 
 from app.utils.emailjs_utils import send_otp_email
+from app.utils.activity_logger import log_activity
 
 from app.services.image_service import ImageService
 
@@ -92,6 +93,9 @@ def register(user: RegisterSchema, db: Session = Depends(get_db)):
 
     db.add(new_user)
     db.commit()
+
+    # Log user registration activity
+    log_activity(db, new_user.id, new_user.username, "signup", f"{new_user.username} signed up")
 
     # Generate JWT tokens for immediate login
     access_token = create_access_token(new_user.id)
@@ -281,6 +285,9 @@ def update_profile(data: ProfileSetupSchema, current_user: User = Depends(get_cu
 
     db.commit()
     db.refresh(current_user)
+
+    # Log profile update activity
+    log_activity(db, current_user.id, current_user.username, "profile_update", f"{current_user.username} updated profile")
 
     return {
         "message": "Profile updated successfully",

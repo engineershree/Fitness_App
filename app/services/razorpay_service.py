@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from app.models.payment import Payment
 from app.models.subscription import Subscription
 from app.models.subscription_plans import Plan
+from app.models.user import User
+from app.utils.activity_logger import log_activity
 
 logger = logging.getLogger(__name__)
 
@@ -124,10 +126,17 @@ class RazorpayService:
                 Subscription.status == 'active'
             ).first()
 
+            # Get user and plan details for logging
+            user = db.query(User).filter(User.id == payment.user_id).first()
+            
             if existing_subscription:
                 # Extend existing subscription
                 existing_subscription.end_date = max(existing_subscription.end_date, end_date)
                 logger.info(f"Extended existing subscription: {existing_subscription.id}")
+                
+                # Log subscription extension activity
+                if user:
+                    log_activity(db, payment.user_id, user.username, "subscription_purchase", f"{user.username} extended {plan.name}")
             else:
                 # Create new subscription
                 subscription = Subscription(
@@ -140,6 +149,10 @@ class RazorpayService:
                 )
                 db.add(subscription)
                 logger.info(f"Created new subscription: {subscription.id}")
+                
+                # Log subscription purchase activity
+                if user:
+                    log_activity(db, payment.user_id, user.username, "subscription_purchase", f"{user.username} purchased {plan.name}")
 
         except Exception as e:
             logger.error(f"Failed to create subscription: {str(e)}")
