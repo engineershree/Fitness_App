@@ -13,6 +13,7 @@ from app.models.subscription import Subscription
 from app.models.subscription_plans import Plan
 from app.core.database import get_db
 from app.services.image_service import ImageService
+from app.services.notification_service import notification_service
 
 from .dependencies import get_current_admin
 from .schemas import (
@@ -50,6 +51,15 @@ async def register_user(user: UserRegisterSchema,
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+
+    # Create activity log and send notification
+    await notification_service.create_activity_and_notify(
+        db=db,
+        user_id=new_user.id,
+        username=new_user.username,
+        activity_type="USER_REGISTERED",
+        description=f"{new_user.username} registered by admin"
+    )
 
     return UserRegisterResponse(
         username=new_user.username,

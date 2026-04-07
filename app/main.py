@@ -3,6 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.router import api_router
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.router import admin_router
+from app.api.websocket import router as websocket_router
 from app.core.database import engine, Base
 from app.models import *
 
@@ -30,6 +31,7 @@ app.mount("/media", StaticFiles(directory="app/media"), name="media")
 
 # Include API routes
 app.include_router(api_router, prefix="/api")
+app.include_router(websocket_router, prefix="/ws")
 
 @app.get("/")
 def root():

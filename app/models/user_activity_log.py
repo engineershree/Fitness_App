@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Index
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, Index
 from sqlalchemy.sql import func
 from app.core.database import Base
 
@@ -11,6 +11,7 @@ class UserActivityLog(Base):
     username = Column(String(100), nullable=False, index=True)
     activity_type = Column(String(50), nullable=False, index=True)
     description = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False, nullable=False, comment="Whether notification has been read by admin")
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -18,8 +19,10 @@ class UserActivityLog(Base):
         comment="Timestamp stored in UTC internally"
     )
 
-    # Add index on created_at for performance optimization
+    # Add indexes for performance optimization
     __table_args__ = (
         Index('idx_activity_logs_created_at', 'created_at'),
         Index('idx_activity_logs_user_created', 'user_id', 'created_at'),
+        Index('idx_activity_logs_is_read_created', 'is_read', 'created_at'),
+        Index('idx_activity_logs_type_read_created', 'activity_type', 'is_read', 'created_at'),
     )

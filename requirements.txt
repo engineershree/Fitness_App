@@ -1,5 +1,5 @@
 fastapi
-uvicorn
+uvicorn[standard]
 flask
 sqlalchemy
 psycopg2-binary
