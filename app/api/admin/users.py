@@ -285,38 +285,77 @@ async def delete_user(
     if active_subscription:
         raise HTTPException(
             status_code=400, 
-            detail="User has an active subscription plan currently, can't delete user"
+            detail="This user has active subscription thats why we cant perform deletion"
         )
 
-    # Delete user profile image from Cloudinary if exists
-    if user.profile_image:
-        try:
-            import cloudinary
-            import cloudinary.uploader
-            import re
-            
-            # Extract public_id from Cloudinary URL
-            # Cloudinary URL format: https://res.cloudinary.com/your_cloud_name/image/upload/v1234567890/public_id.jpg
-            url_pattern = r'/upload/v\d+/(.+?)\.'
-            match = re.search(url_pattern, user.profile_image)
-            
-            if match:
-                public_id = match.group(1)
-                # Delete image from Cloudinary
-                cloudinary.uploader.destroy(public_id)
-                print(f"Successfully deleted profile image: {public_id}")
-            else:
-                print(f"Could not extract public_id from URL: {user.profile_image}")
+    try:
+        # Step 1: Delete all refresh tokens for the user (not just revoke them)
+        from app.models.refresh_token import RefreshToken
+        refresh_tokens = db.query(RefreshToken).filter(RefreshToken.user_id == user_id).all()
+        for token in refresh_tokens:
+            db.delete(token)
+        print(f"Deleted {len(refresh_tokens)} refresh tokens for user {user_id}")
+
+        # Step 2: Delete all activity records for the user
+        from app.models.activity import DailyActivity
+        daily_activities = db.query(DailyActivity).filter(DailyActivity.user_id == user_id).all()
+        for activity in daily_activities:
+            db.delete(activity)
+        print(f"Deleted {len(daily_activities)} daily activity records for user {user_id}")
+
+        # Step 3: Delete monthly activity records if they exist
+        from app.models.monthly_activity import UserMonthlyActivity
+        monthly_activities = db.query(UserMonthlyActivity).filter(UserMonthlyActivity.user_id == user_id).all()
+        for activity in monthly_activities:
+            db.delete(activity)
+        print(f"Deleted {len(monthly_activities)} monthly activity records for user {user_id}")
+
+        # Step 4: Delete yearly activity records if they exist
+        from app.models.yearly_activity import UserYearlyActivity
+        yearly_activities = db.query(UserYearlyActivity).filter(UserYearlyActivity.user_id == user_id).all()
+        for activity in yearly_activities:
+            db.delete(activity)
+        print(f"Deleted {len(yearly_activities)} yearly activity records for user {user_id}")
+
+        # Step 5: Delete all subscription records for the user
+        subscriptions = db.query(Subscription).filter(Subscription.user_id == user_id).all()
+        for subscription in subscriptions:
+            db.delete(subscription)
+        print(f"Deleted {len(subscriptions)} subscription records for user {user_id}")
+
+        # Step 6: Delete user profile image from Cloudinary if exists
+        if user.profile_image:
+            try:
+                import cloudinary
+                import cloudinary.uploader
+                import re
                 
-        except Exception as e:
-            print(f"Failed to delete profile image from Cloudinary: {str(e)}")
-            # Continue with user deletion even if image deletion fails
+                # Extract public_id from Cloudinary URL
+                # Cloudinary URL format: https://res.cloudinary.com/your_cloud_name/image/upload/v1234567890/public_id.jpg
+                url_pattern = r'/upload/v\d+/(.+?)\.'
+                match = re.search(url_pattern, user.profile_image)
+                
+                if match:
+                    public_id = match.group(1)
+                    # Delete image from Cloudinary
+                    cloudinary.uploader.destroy(public_id)
+                    print(f"Successfully deleted profile image: {public_id}")
+                else:
+                    print(f"Could not extract public_id from URL: {user.profile_image}")
+                    
+            except Exception as e:
+                print(f"Failed to delete profile image from Cloudinary: {str(e)}")
+                # Continue with user deletion even if image deletion fails
 
-    # Delete user (this will cascade delete related records if properly configured)
-    db.delete(user)
-    db.commit()
+        # Step 7: Delete the user
+        db.delete(user)
+        db.commit()
 
-    return {"message": f"User {user_id} deleted successfully"}
+        return {"message": f"User {user_id} and all associated records deleted successfully"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete user: {str(e)}")
 
 
 async def get_user_subscriptions_paginated(
