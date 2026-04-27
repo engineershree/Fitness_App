@@ -73,14 +73,15 @@ def remove_quote(
     current_admin: Admin = Depends(get_current_admin)
 ):
     """
-    Soft delete a quote (Admin only)
+    Permanently delete a quote from database (Admin only)
     """
-    # Soft delete
-    quote = db.query(Quote).filter(Quote.id == quote_id, Quote.is_active == True).first()
+    # Find quote
+    quote = db.query(Quote).filter(Quote.id == quote_id).first()
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found")
     
-    quote.is_active = False
+    # Permanently delete from database
+    db.delete(quote)
     db.commit()
     
-    return SuccessResponse(message="Quote successfully marked as inactive")
+    return SuccessResponse(message="Quote successfully deleted")
