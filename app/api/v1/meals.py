@@ -36,7 +36,7 @@ def get_meals_by_user_bmi(current_user: User = Depends(get_current_user), db: Se
             detail="No BMI category found for the calculated BMI"
         )
 
-    # Get first 5 meals per meal type for the BMI category
+    # Get first 5 meals per meal type for BMI category, ordered by creation date
     meal_types = ['breakfast', 'lunch', 'dinner']
     meals = []
     
@@ -44,7 +44,7 @@ def get_meals_by_user_bmi(current_user: User = Depends(get_current_user), db: Se
         category_meals = db.query(Meal).filter(
             Meal.bmi_category_id == bmi_category.id,
             Meal.meal_type == meal_type
-        ).limit(5).all()
+        ).order_by(Meal.created_at.asc()).limit(5).all()
         meals.extend(category_meals)
 
     # Convert to response schema
