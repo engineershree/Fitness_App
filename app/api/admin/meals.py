@@ -70,7 +70,7 @@ async def get_meals_paginated(
 ) -> dict:
 
     # Build query
-    query = db.query(Meal)
+    query = db.query(Meal).order_by(Meal.created_at.asc())
 
     # Apply filters
     if search:
