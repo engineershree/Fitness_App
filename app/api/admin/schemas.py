@@ -130,6 +130,7 @@ class WorkoutBase(BaseModel):
     calories_burned: Optional[int] = None
     difficulty_level: Optional[str] = None
     category: Optional[str] = None
+    workout_type: Optional[str] = None
     workout_image_url: Optional[str] = None
     workout_video_url: Optional[str] = None
 
@@ -143,6 +144,7 @@ class WorkoutUpdate(BaseModel):
     calories_burned: Optional[int] = None
     difficulty_level: Optional[str] = None
     category: Optional[str] = None
+    workout_type: Optional[str] = None
 
 class WorkoutResponse(WorkoutBase):
     id: int

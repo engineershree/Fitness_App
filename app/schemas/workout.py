@@ -9,6 +9,7 @@ class WorkoutCreate(BaseModel):
     calorie_burn: int
     activity_level: str
     workout_category: str
+    workout_type: str
 
 class WorkoutResponse(BaseModel):
     id: int
@@ -20,6 +21,7 @@ class WorkoutResponse(BaseModel):
     calorie_burn: int
     activity_level: str
     workout_category: str
+    workout_type: str
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

@@ -66,6 +66,7 @@ def get_workouts_for_user(current_user: User = Depends(get_current_user), db: Se
             calorie_burn=workout.calorie_burn,
             activity_level=workout.activity_level,
             workout_category=workout.workout_category,
+            workout_type=workout.workout_type,
             created_at=workout.created_at,
             updated_at=workout.updated_at
         )

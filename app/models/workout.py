@@ -17,6 +17,7 @@ class Workout(Base):
     calorie_burn = Column(Integer, nullable=False)
     activity_level = Column(String, nullable=False)
     workout_category = Column(String, nullable=False)
+    workout_type = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

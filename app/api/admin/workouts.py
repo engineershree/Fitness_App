@@ -25,6 +25,7 @@ async def create_workout(
         calorie_burn: int = Form(...),
         activity_level: str = Form(...),
         workout_category: str = Form(...),
+        workout_type: str = Form(...),
         workout_image: Optional[UploadFile] = File(None),
         workout_video: Optional[UploadFile] = File(None),
         db: Session = Depends(get_db)
@@ -42,6 +43,13 @@ async def create_workout(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="workout_category must be one of: gain, loose, maintain"
+        )
+
+    # Validate workout_type
+    if workout_type not in ["Home", "Gym"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="workout_type must be one of: Home, Gym"
         )
 
     # Check if workout already exists
@@ -66,6 +74,7 @@ async def create_workout(
         "calorie_burn": calorie_burn,
         "activity_level": activity_level,
         "workout_category": workout_category,
+        "workout_type": workout_type,
         "workout_image_url": "",  # Temporary placeholder
         "workout_video_url": ""  # Temporary placeholder
     }
@@ -98,6 +107,7 @@ async def create_workout(
             calories_burned=db_workout.calorie_burn,
             difficulty_level=db_workout.activity_level,
             category=db_workout.workout_category,
+            workout_type=db_workout.workout_type,
             workout_image_url=db_workout.workout_image_url.replace("app/", "/", 1) if db_workout.workout_image_url and db_workout.workout_image_url.startswith("app/") else db_workout.workout_image_url,
             workout_video_url=db_workout.workout_video_url.replace("app/", "/", 1) if db_workout.workout_video_url and db_workout.workout_video_url.startswith("app/") else db_workout.workout_video_url,
             created_at=db_workout.created_at or datetime.utcnow()
@@ -162,6 +172,7 @@ async def get_workouts_paginated(
             calories_burned=workout.calorie_burn,
             difficulty_level=workout.activity_level,
             category=workout.workout_category,
+            workout_type=workout.workout_type,
             workout_image_url=workout.workout_image_url.replace("app/", "/", 1) if workout.workout_image_url and workout.workout_image_url.startswith("app/") else workout.workout_image_url,
             workout_video_url=workout.workout_video_url.replace("app/", "/", 1) if workout.workout_video_url and workout.workout_video_url.startswith("app/") else workout.workout_video_url,
             created_at=workout.created_at or datetime.utcnow()
@@ -206,6 +217,7 @@ async def get_workout_by_id(
         calories_burned=workout.calorie_burn,
         difficulty_level=workout.activity_level,
         category=workout.workout_category,
+        workout_type=workout.workout_type,
         workout_image_url=workout.workout_image_url.replace("app/", "/", 1) if workout.workout_image_url and workout.workout_image_url.startswith("app/") else workout.workout_image_url,
         workout_video_url=workout.workout_video_url.replace("app/", "/", 1) if workout.workout_video_url and workout.workout_video_url.startswith("app/") else workout.workout_video_url,
         created_at=workout.created_at or datetime.utcnow()
@@ -220,6 +232,7 @@ async def update_workout(
         calorie_burn: Optional[int] = Form(None),
         activity_level: Optional[str] = Form(None),
         workout_category: Optional[str] = Form(None),
+        workout_type: Optional[str] = Form(None),
         workout_image: Optional[UploadFile] = File(None),
         workout_video: Optional[UploadFile] = File(None),
         db: Session = Depends(get_db),
@@ -258,6 +271,13 @@ async def update_workout(
                 detail="workout_category must be one of: gain, loose, maintain"
             )
         workout.workout_category = workout_category
+    if workout_type is not None:
+        if workout_type not in ["Home", "Gym"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="workout_type must be one of: Home, Gym"
+            )
+        workout.workout_type = workout_type
 
     try:
         # Handle media file updates if provided
@@ -302,6 +322,7 @@ async def update_workout(
             calories_burned=workout.calorie_burn,
             difficulty_level=workout.activity_level,
             category=workout.workout_category,
+            workout_type=workout.workout_type,
             workout_image_url=workout.workout_image_url.replace("app/", "/", 1) if workout.workout_image_url and workout.workout_image_url.startswith("app/") else workout.workout_image_url,
             workout_video_url=workout.workout_video_url.replace("app/", "/", 1) if workout.workout_video_url and workout.workout_video_url.startswith("app/") else workout.workout_video_url,
             created_at=workout.created_at or datetime.utcnow()
