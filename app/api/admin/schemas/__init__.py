@@ -44,6 +44,10 @@ from .quotes import (
     QuoteBase, QuoteCreate, QuoteUpdate, QuoteResponse
 )
 
+from .explore_activity import (
+    ExploreActivityBase, ExploreActivityCreate, ExploreActivityUpdate, ExploreActivityResponse
+)
+
 __all__ = [
     # Auth schemas
     "AdminBase", "AdminRegister", "AdminLogin", "AdminResponse",
@@ -77,5 +81,8 @@ __all__ = [
     "OverviewResponse",
     
     # Quote schemas
-    "QuoteBase", "QuoteCreate", "QuoteUpdate", "QuoteResponse"
+    "QuoteBase", "QuoteCreate", "QuoteUpdate", "QuoteResponse",
+    
+    # Explore Activity schemas
+    "ExploreActivityBase", "ExploreActivityCreate", "ExploreActivityUpdate", "ExploreActivityResponse"
 ]

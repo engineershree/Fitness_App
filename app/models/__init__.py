@@ -3,5 +3,6 @@ from .activity import DailyActivity
 from .monthly_activity import UserMonthlyActivity
 from .yearly_activity import UserYearlyActivity
 from .user_activity_log import UserActivityLog
+from .explore_activity import ExploreActivity
 
-__all__ = ["User", "DailyActivity", "UserMonthlyActivity", "UserYearlyActivity", "UserActivityLog"]
+__all__ = ["User", "DailyActivity", "UserMonthlyActivity", "UserYearlyActivity", "UserActivityLog", "ExploreActivity"]

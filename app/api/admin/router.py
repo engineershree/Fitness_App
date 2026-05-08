@@ -13,7 +13,8 @@ from .schemas import (
     BMIClassificationResponse, BMIClassificationCreate, BMIClassificationUpdate,
     PaginatedResponse, PaginationInfo, AdminRefreshTokenRequest, AdminLogoutRequest, AdminRefreshTokenResponse,
     Plan, PlanCreate, PlanUpdate, UserSubscriptionResponse,
-    OverviewResponse, UserResponsedash, QuoteResponse, SuccessResponse
+    OverviewResponse, UserResponsedash, QuoteResponse, SuccessResponse,
+    ExploreActivityResponse
 )
 from .auth import register_admin, login_admin, admin_forgot_password_send_otp, admin_forgot_password_verify_otp, admin_forgot_password_reset, admin_change_password, get_admin_profile, update_admin_profile
 from .auth_tokens import refresh_admin_access_token, logout_admin
@@ -36,6 +37,10 @@ from .users import get_user_subscriptions_paginated, get_user_subscription_by_id
 from .activities import get_recent_activities
 from .notifications import get_notifications, get_notification_stats, get_activity_types, mark_notification_as_read, mark_all_notifications_as_read, get_unread_notifications_count
 from .quotes import create_new_quote, list_all_quotes_for_admin, modify_existing_quote, remove_quote
+from .explore_activities import (
+    create_explore_activity, get_explore_activities_paginated, get_explore_activity_by_id, 
+    update_explore_activity, delete_explore_activity
+)
 
 
 admin_router = APIRouter()
@@ -123,4 +128,11 @@ admin_router.get("/notifications/activity-types")(get_activity_types)
 admin_router.put("/notifications/{notification_id}/mark-read")(mark_notification_as_read)
 admin_router.put("/notifications/mark-all-read")(mark_all_notifications_as_read)
 admin_router.get("/notifications/unread-count")(get_unread_notifications_count)
+
+# Explore Activities Management Routes
+admin_router.post("/explore-activities", response_model=ExploreActivityResponse)(create_explore_activity)
+admin_router.get("/explore-activities", response_model=dict)(get_explore_activities_paginated)
+admin_router.get("/explore-activities/{activity_id}", response_model=ExploreActivityResponse)(get_explore_activity_by_id)
+admin_router.put("/explore-activities/{activity_id}", response_model=ExploreActivityResponse)(update_explore_activity)
+admin_router.delete("/explore-activities/{activity_id}", response_model=dict)(delete_explore_activity)
 
